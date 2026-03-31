@@ -1,0 +1,780 @@
+// 吃豆人游戏 - 顶级UI主题样式
+// 灵感来源: 现代游戏平台 + 霓虹风格
+
+:root {
+  // 主色系 - 霓虹金色
+  --primary-color: #ffd700;
+  --primary-light: #ffe44d;
+  --primary-dark: #e6c200;
+  --primary-glow: rgba(255, 215, 0, 0.4);
+
+  // 辅助色系
+  --secondary-color: #00d4ff;
+  --secondary-light: #4de1ff;
+  --secondary-glow: rgba(0, 212, 255, 0.4);
+
+  // 强调色
+  --accent-pink: #ff6b9d;
+  --accent-purple: #a855f7;
+  --accent-green: #10b981;
+
+  // 背景色系 - 深邃太空感
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #111827;
+  --bg-card: linear-gradient(145deg, #1a1f35 0%, #0d1220 100%);
+  --bg-card-hover: linear-gradient(145deg, #222842 0%, #141a2e 100%);
+  --bg-glass: rgba(17, 24, 39, 0.8);
+
+  // 文字色
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+
+  // 状态色
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+
+  // 边框和阴影
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(255, 215, 0, 0.3);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 30px var(--primary-glow);
+  --shadow-glow-blue: 0 0 30px var(--secondary-glow);
+
+  // 圆角
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  // 动画
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+
+// 重置样式
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  // 移除移动端点击时的蓝色高亮
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+html {
+  // 基准字体大小由 amfe-flexible 动态设置
+  // 在 375px 设计稿下，1rem = 37.5px
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  // 限制最大字体大小，避免大屏设备上字体过大
+  @media (min-width: 768px) {
+    font-size: 37.5px !important; // 锁定桌面端 rem 基准
+  }
+}
+
+body {
+  font-family:
+    "Inter",
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+// 背景动画效果
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(
+      ellipse at 20% 20%,
+      rgba(255, 215, 0, 0.03) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 80% 80%,
+      rgba(0, 212, 255, 0.03) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      rgba(168, 85, 247, 0.02) 0%,
+      transparent 70%
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+#app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+// ==================== 通用组件 ====================
+
+// 玻璃态卡片
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  backdrop-filter: blur(20px);
+  transition: all var(--transition-normal);
+
+  &:hover {
+    border-color: var(--border-glow);
+    box-shadow: var(--shadow-md);
+  }
+
+  &--glow {
+    box-shadow: var(--shadow-glow);
+    border-color: var(--primary-glow);
+  }
+
+  &--interactive {
+    cursor: pointer;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-glow);
+    }
+
+    &:active {
+      transform: translateY(-2px);
+    }
+  }
+}
+
+// 高级按钮系统
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: left 0.5s ease;
+  }
+
+  &:hover::before {
+    left: 100%;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    &::before {
+      display: none;
+    }
+  }
+
+  // 主要按钮 - 金色霓虹
+  &-primary {
+    background: linear-gradient(
+      135deg,
+      var(--primary-color) 0%,
+      var(--primary-dark) 100%
+    );
+    color: #000;
+    box-shadow: 0 4px 15px var(--primary-glow);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px var(--primary-glow);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  }
+
+  // 次要按钮 - 蓝色霓虹
+  &-secondary {
+    background: linear-gradient(
+      135deg,
+      var(--secondary-color) 0%,
+      #0099cc 100%
+    );
+    color: #000;
+    box-shadow: 0 4px 15px var(--secondary-glow);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px var(--secondary-glow);
+    }
+  }
+
+  // 幽灵按钮
+  &-ghost {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+  }
+
+  // 危险按钮
+  &-danger {
+    background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+    color: #fff;
+
+    &:hover:not(:disabled) {
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+    }
+  }
+
+  // 尺寸变体
+  &-sm {
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+
+  &-lg {
+    padding: 18px 36px;
+    font-size: 17px;
+  }
+
+  &-block {
+    width: 100%;
+  }
+}
+
+// 输入框
+.input {
+  width: 100%;
+  padding: 14px 18px;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: all var(--transition-normal);
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+
+  &:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &:hover:not(:focus) {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+// ==================== 页面布局 ====================
+
+.page-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 20px;
+  min-height: 100vh;
+  // padding-bottom 由 Layout.vue 统一管理
+  padding-bottom: 20px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 24px;
+  background: linear-gradient(
+    135deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// ==================== 底部导航 ====================
+// 已移至 Layout.vue 组件中管理
+
+// ==================== 排行榜样式 ====================
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  transition: all var(--transition-normal);
+
+  &:hover {
+    transform: translateX(4px);
+    border-color: var(--border-glow);
+  }
+
+  .rank {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: var(--radius-full);
+    margin-right: 14px;
+    background: rgba(255, 255, 255, 0.05);
+
+    &.gold {
+      background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+      color: #000;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    }
+
+    &.silver {
+      background: linear-gradient(135deg, #e8e8e8 0%, #b8b8b8 100%);
+      color: #000;
+      box-shadow: 0 4px 15px rgba(192, 192, 192, 0.3);
+    }
+
+    &.bronze {
+      background: linear-gradient(135deg, #cd7f32 0%, #a0522d 100%);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(205, 127, 50, 0.3);
+    }
+  }
+
+  .player-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(
+        135deg,
+        var(--primary-color) 0%,
+        var(--accent-purple) 100%
+      );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      margin-right: 12px;
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+    }
+
+    .details {
+      .name {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+
+      .meta {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+    }
+  }
+
+  .score {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary-color);
+    text-shadow: 0 0 10px var(--primary-glow);
+  }
+}
+
+// ==================== 动画效果 ====================
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px var(--primary-glow);
+  }
+  50% {
+    box-shadow:
+      0 0 40px var(--primary-glow),
+      0 0 60px var(--primary-glow);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+// ==================== 徽章和标签 ====================
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+
+  &-success {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  &-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  &-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  &-info {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--info);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+}
+
+// ==================== 空状态 ====================
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .empty-text {
+    color: var(--text-muted);
+    font-size: 15px;
+    margin-bottom: 20px;
+  }
+}
+
+// ==================== 加载状态 ====================
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ==================== Element Plus 覆盖 ====================
+
+.el-message {
+  --el-message-bg-color: var(--bg-secondary) !important;
+  --el-message-border-color: var(--border-color) !important;
+  --el-message-text-color: var(--text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  backdrop-filter: blur(20px);
+}
+
+.el-loading-mask {
+  background-color: rgba(10, 14, 26, 0.9) !important;
+  backdrop-filter: blur(10px);
+}
+
+// ==================== 滚动条美化 ====================
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+// ==================== 响应式断点 ====================
+// 手机: < 576px
+// 平板: 576px - 992px
+// 桌面: > 992px
+
+// 小屏手机适配（postcss-pxtorem 会自动转换 px -> rem）
+@media (max-width: 375px) {
+  .page-container {
+    padding: 16px 16px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .btn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .bottom-nav .nav-item {
+    padding: 8px 12px;
+    font-size: 10px;
+    .icon {
+      font-size: 22px;
+    }
+  }
+}
+
+// 平板适配
+@media (min-width: 576px) {
+  .page-container {
+    max-width: 540px;
+    padding: 24px 20px;
+  }
+
+  .page-title {
+    font-size: 32px;
+    margin-bottom: 32px;
+  }
+
+  .card {
+    padding: 24px;
+  }
+
+  .btn-lg {
+    padding: 20px 40px;
+    font-size: 18px;
+  }
+}
+
+// 大平板/小桌面
+@media (min-width: 768px) {
+  .page-container {
+    max-width: 720px;
+    padding: 32px 24px;
+  }
+
+  // 底部导航变为顶部导航
+  .bottom-nav {
+    top: 0;
+    bottom: auto;
+    border-top: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 16px;
+    max-width: 720px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+
+    .nav-item {
+      flex-direction: row;
+      gap: 8px;
+      padding: 16px 24px;
+      font-size: 14px;
+
+      .icon {
+        font-size: 20px;
+        margin-bottom: 0;
+      }
+
+      &::after {
+        bottom: 0;
+        width: 100%;
+        height: 2px;
+      }
+    }
+  }
+
+  // 页面内容上移，给顶部导航留空间
+  #app {
+    padding-top: 60px;
+  }
+
+  .page-container {
+    padding-bottom: 40px;
+  }
+
+  // 排行榜项目更大
+  .ranking-item {
+    padding: 20px 24px;
+
+    .rank {
+      width: 52px;
+      height: 52px;
+      font-size: 20px;
+    }
+
+    .player-info .avatar {
+      width: 48px;
+      height: 48px;
+      font-size: 18px;
+    }
+
+    .score {
+      font-size: 24px;
+    }
+  }
+}
+
+// 桌面端
+@media (min-width: 992px) {
+  .page-container {
+    max-width: 960px;
+    padding: 40px 32px;
+  }
+
+  .page-title {
+    font-size: 36px;
+  }
+
+  // 导航栏居中且更宽
+  .bottom-nav {
+    max-width: 800px;
+    padding: 0 24px;
+
+    .nav-item {
+      padding: 18px 32px;
+      font-size: 15px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+    }
+  }
+
+  // 卡片网格布局
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  // 三列网格
+  .card-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+}
+
+// 大桌面
+@media (min-width: 1200px) {
+  .page-container {
+    max-width: 1140px;
+  }
+
+  .bottom-nav {
+    max-width: 900px;
+  }
+}
+
+// 超大屏幕
+@media (min-width: 1400px) {
+  .page-container {
+    max-width: 1320px;
+  }
+}
