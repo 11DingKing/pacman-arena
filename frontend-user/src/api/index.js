@@ -83,6 +83,12 @@ export const itemApi = {
   useItem: (itemId) => api.post("/item/use", { itemId }),
 };
 
+// User API
+export const userApi = {
+  getSettings: () => api.get("/user/settings"),
+  updateSettings: (settings) => api.put("/user/settings", { settings }),
+};
+
 // Payment API（显式 skipShowError，仅弹窗内展示错误，避免重复 toast）
 export const paymentApi = {
   mode: () => api.get("/payment/mode", { skipShowError: true }),
