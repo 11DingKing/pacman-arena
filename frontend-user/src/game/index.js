@@ -8,3 +8,4 @@ export { Pacman } from './Pacman.js';
 export { Ghost, GhostManager } from './Ghost.js';
 export { Renderer } from './Renderer.js';
 export { GameEngine, GameState, GameEvents } from './GameEngine.js';
+export { SoundManager, SoundType, soundManager } from './SoundManager.js';

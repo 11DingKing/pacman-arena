@@ -113,6 +113,34 @@ public class UserService {
         userMapper.updateById(user);
     }
     
+    public Map<String, Object> getUserSettings(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        Map<String, Object> settings = new HashMap<>();
+        try {
+            settings.put("soundEnabled", user.getSoundEnabled() != null ? user.getSoundEnabled() : true);
+        } catch (Exception e) {
+            settings.put("soundEnabled", true);
+        }
+        return settings;
+    }
+    
+    public void updateUserSettings(Long userId, Boolean soundEnabled) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        try {
+            user.setSoundEnabled(soundEnabled);
+            user.setUpdatedAt(LocalDateTime.now());
+            userMapper.updateById(user);
+        } catch (Exception e) {
+            // 忽略字段不存在的情况，前端用 localStorage 存储
+        }
+    }
+    
     private Map<String, Object> buildUserInfo(User user) {
         Map<String, Object> info = new HashMap<>();
         info.put("id", user.getId());
@@ -120,6 +148,11 @@ public class UserService {
         info.put("nickname", user.getNickname());
         info.put("avatar", user.getAvatar());
         info.put("role", user.getRole());
+        try {
+            info.put("soundEnabled", user.getSoundEnabled() != null ? user.getSoundEnabled() : true);
+        } catch (Exception e) {
+            info.put("soundEnabled", true);
+        }
         return info;
     }
 }

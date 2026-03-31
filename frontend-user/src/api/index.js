@@ -65,22 +65,29 @@ export const authApi = {
   login: (data) => api.post("/auth/login", data),
   register: (data) => api.post("/auth/register", data),
   getInfo: () => api.get("/auth/info"),
+  getUserSettings: () =>
+    api.get("/auth/user/settings", { skipShowError: true }),
+  updateUserSettings: (data) =>
+    api.put("/auth/user/settings", data, { skipShowError: true }),
 };
 
 // Game API
 export const gameApi = {
-  submitScore: (data) => api.post("/game/submit", data),
-  getRanking: (limit = 50) => api.get("/game/ranking", { params: { limit } }),
+  submitScore: (data) =>
+    api.post("/game/submit", data, { skipShowError: true }),
+  getRanking: (limit = 50) =>
+    api.get("/game/ranking", { params: { limit }, skipShowError: true }),
   getMyRecords: (limit = 20) =>
-    api.get("/game/my-records", { params: { limit } }),
-  getMyBest: () => api.get("/game/my-best"),
+    api.get("/game/my-records", { params: { limit }, skipShowError: true }),
+  getMyBest: () => api.get("/game/my-best", { skipShowError: true }),
 };
 
 // Item API
 export const itemApi = {
   getList: () => api.get("/item/list"),
-  getMyItems: () => api.get("/item/my-items"),
-  useItem: (itemId) => api.post("/item/use", { itemId }),
+  getMyItems: () => api.get("/item/my-items", { skipShowError: true }),
+  useItem: (itemId) =>
+    api.post("/item/use", { itemId }, { skipShowError: true }),
 };
 
 // Payment API（显式 skipShowError，仅弹窗内展示错误，避免重复 toast）
