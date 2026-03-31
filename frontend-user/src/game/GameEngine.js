@@ -3,36 +3,37 @@
  * 整合所有游戏模块，提供统一的游戏控制接口
  */
 
-import { GameConfig, DEFAULT_CONFIG } from './config.js';
-import { GameMap } from './Map.js';
-import { Pacman } from './Pacman.js';
-import { GhostManager } from './Ghost.js';
-import { Renderer } from './Renderer.js';
+import { GameConfig, DEFAULT_CONFIG } from "./config.js";
+import { GameMap } from "./Map.js";
+import { Pacman } from "./Pacman.js";
+import { GhostManager } from "./Ghost.js";
+import { Renderer } from "./Renderer.js";
+import { soundManager } from "./SoundManager.js";
 
 /**
  * 游戏状态枚举
  */
 export const GameState = {
-  READY: 'ready',
-  PLAYING: 'playing',
-  PAUSED: 'paused',
-  OVER: 'over',
+  READY: "ready",
+  PLAYING: "playing",
+  PAUSED: "paused",
+  OVER: "over",
 };
 
 /**
  * 游戏事件类型
  */
 export const GameEvents = {
-  SCORE_CHANGE: 'scoreChange',
-  LEVEL_CHANGE: 'levelChange',
-  LIVES_CHANGE: 'livesChange',
-  STATE_CHANGE: 'stateChange',
-  POWER_MODE_START: 'powerModeStart',
-  POWER_MODE_END: 'powerModeEnd',
-  GHOST_EATEN: 'ghostEaten',
-  DEATH: 'death',
-  LEVEL_COMPLETE: 'levelComplete',
-  GAME_OVER: 'gameOver',
+  SCORE_CHANGE: "scoreChange",
+  LEVEL_CHANGE: "levelChange",
+  LIVES_CHANGE: "livesChange",
+  STATE_CHANGE: "stateChange",
+  POWER_MODE_START: "powerModeStart",
+  POWER_MODE_END: "powerModeEnd",
+  GHOST_EATEN: "ghostEaten",
+  DEATH: "death",
+  LEVEL_COMPLETE: "levelComplete",
+  GAME_OVER: "gameOver",
 };
 
 /**
@@ -42,38 +43,38 @@ export class GameEngine {
   constructor(canvas, customConfig = {}) {
     // 配置
     this.config = new GameConfig(customConfig);
-    
+
     // 游戏对象
     this.map = null;
     this.pacman = null;
     this.ghostManager = null;
     this.renderer = null;
-    
+
     // 游戏状态
     this.state = GameState.READY;
     this.score = 0;
     this.level = 1;
-    this.lives = this.config.get('initialLives');
+    this.lives = this.config.get("initialLives");
     this.startTime = 0;
-    
+
     // 模式状态
     this.isPowerMode = false;
     this.isInvincibleAfterDeath = false;
-    
+
     // 效果状态
     this.speedMultiplier = 1;
     this.scoreMultiplier = 1;
     this.hasMagnet = false;
-    
+
     // 定时器
     this.animationId = null;
     this.lastFrameTime = 0;
     this.powerModeTimer = null;
     this.invincibleTimer = null;
-    
+
     // 事件监听器
     this.eventListeners = {};
-    
+
     // 初始化渲染器
     if (canvas) {
       this.setCanvas(canvas);
@@ -96,24 +97,27 @@ export class GameEngine {
    */
   init() {
     const config = this.config.config;
-    
+
+    // 初始化音效管理器
+    soundManager.init();
+
     // 创建地图
     const mapData = this.config.getMapForLevel(this.level);
     this.map = new GameMap(mapData, config.gridSize);
-    
+
     // 创建吃豆人
     this.pacman = new Pacman(config.pacman);
-    
+
     // 创建幽灵管理器
     this.ghostManager = new GhostManager(config.ghosts);
-    
+
     // 重置状态
     this.isPowerMode = false;
     if (this.powerModeTimer) {
       clearTimeout(this.powerModeTimer);
       this.powerModeTimer = null;
     }
-    
+
     // 渲染初始画面
     this.draw();
   }
@@ -124,14 +128,14 @@ export class GameEngine {
   start() {
     this.state = GameState.PLAYING;
     this.score = 0;
-    this.lives = this.config.get('initialLives');
+    this.lives = this.config.get("initialLives");
     this.level = 1;
     this.startTime = Date.now();
-    
+
     this.init();
     this.lastFrameTime = performance.now();
     this.gameLoop(this.lastFrameTime);
-    
+
     this.emit(GameEvents.STATE_CHANGE, { state: this.state });
   }
 
@@ -140,13 +144,13 @@ export class GameEngine {
    */
   pause() {
     if (this.state !== GameState.PLAYING) return;
-    
+
     this.state = GameState.PAUSED;
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
-    
+
     this.emit(GameEvents.STATE_CHANGE, { state: this.state });
   }
 
@@ -155,11 +159,11 @@ export class GameEngine {
    */
   resume() {
     if (this.state !== GameState.PAUSED) return;
-    
+
     this.state = GameState.PLAYING;
     this.lastFrameTime = performance.now();
     this.gameLoop(this.lastFrameTime);
-    
+
     this.emit(GameEvents.STATE_CHANGE, { state: this.state });
   }
 
@@ -201,7 +205,7 @@ export class GameEngine {
   end() {
     this.state = GameState.OVER;
     this.stop();
-    
+
     this.emit(GameEvents.STATE_CHANGE, { state: this.state });
     this.emit(GameEvents.GAME_OVER, {
       score: this.score,
@@ -223,13 +227,13 @@ export class GameEngine {
    */
   gameLoop(currentTime) {
     if (this.state !== GameState.PLAYING) return;
-    
+
     this.animationId = requestAnimationFrame((t) => this.gameLoop(t));
-    
+
     const frameTime = this.config.getFrameTime();
     const deltaTime = currentTime - this.lastFrameTime;
     if (deltaTime < frameTime) return;
-    
+
     this.lastFrameTime = currentTime - (deltaTime % frameTime);
     this.update();
   }
@@ -239,52 +243,52 @@ export class GameEngine {
    */
   update() {
     if (!this.pacman || !this.map || !this.ghostManager) return;
-    
+
     // 尝试转向
     this.pacman.tryTurn(
       (x, y) => this.map.canMove(x, y),
-      (pos) => this.map.wrapPosition(pos)
+      (pos) => this.map.wrapPosition(pos),
     );
-    
+
     // 磁铁效果
     if (this.hasMagnet) {
       const pos = this.pacman.getPosition();
-      this.map.applyMagnetEffect(pos.x, pos.y, this.config.get('magnetRadius'));
+      this.map.applyMagnetEffect(pos.x, pos.y, this.config.get("magnetRadius"));
     }
-    
+
     // 计算移动步数（考虑速度加成）
     const baseSteps = Math.floor(this.speedMultiplier);
     const extraChance = this.speedMultiplier - baseSteps;
     const steps = baseSteps + (Math.random() < extraChance ? 1 : 0);
-    
+
     // 移动吃豆人并检测碰撞
     for (let i = 0; i < Math.max(1, steps); i++) {
       this.pacman.move(
         (x, y) => this.map.canMove(x, y),
-        (pos) => this.map.wrapPosition(pos)
+        (pos) => this.map.wrapPosition(pos),
       );
       this.checkDotCollision();
     }
-    
+
     // 更新嘴巴动画
     this.pacman.updateMouthAnimation();
-    
+
     // 移动幽灵
     this.ghostManager.moveAll(
       this.pacman.getPosition(),
       this.isPowerMode,
       (x, y) => this.map.canMove(x, y),
-      (pos) => this.map.wrapPosition(pos)
+      (pos) => this.map.wrapPosition(pos),
     );
-    
+
     // 检测幽灵碰撞
     this.checkGhostCollision();
-    
+
     // 检测关卡完成
     if (this.map.isLevelComplete()) {
       this.nextLevel();
     }
-    
+
     // 如果游戏仍在进行，绘制画面
     if (this.state === GameState.PLAYING) {
       this.draw();
@@ -297,12 +301,14 @@ export class GameEngine {
   checkDotCollision() {
     const pos = this.pacman.getPosition();
     const result = this.map.collectDot(pos.x, pos.y);
-    
+
     if (result) {
       const points = Math.floor(result.points * this.scoreMultiplier);
       this.addScore(points);
-      
-      if (result.type === 'powerDot') {
+      soundManager.playEat();
+
+      if (result.type === "powerDot") {
+        soundManager.playPowerUp();
         this.activatePowerMode();
       }
     }
@@ -314,12 +320,14 @@ export class GameEngine {
   checkGhostCollision() {
     const pos = this.pacman.getPosition();
     const collision = this.ghostManager.checkCollision(pos.x, pos.y);
-    
+
     if (!collision) return;
-    
+
     if (this.isPowerMode) {
       // 吃掉幽灵
-      const points = Math.floor(this.config.get('scores').ghost * this.scoreMultiplier);
+      const points = Math.floor(
+        this.config.get("scores").ghost * this.scoreMultiplier,
+      );
       this.addScore(points);
       this.ghostManager.respawnGhost(collision.index);
       this.emit(GameEvents.GHOST_EATEN, { ghost: collision.ghost });
@@ -334,9 +342,10 @@ export class GameEngine {
    */
   handleDeath() {
     this.lives--;
+    soundManager.playDeath();
     this.emit(GameEvents.LIVES_CHANGE, { lives: this.lives });
     this.emit(GameEvents.DEATH, { lives: this.lives });
-    
+
     if (this.lives <= 0) {
       this.end();
     } else {
@@ -355,13 +364,13 @@ export class GameEngine {
     // 重置位置
     this.pacman.reset();
     this.ghostManager.resetAll();
-    
+
     // 启用短暂无敌
     this.isInvincibleAfterDeath = true;
     setTimeout(() => {
       this.isInvincibleAfterDeath = false;
-    }, this.config.get('invincibleAfterDeathDuration'));
-    
+    }, this.config.get("invincibleAfterDeathDuration"));
+
     // 继续游戏
     this.draw();
     this.lastFrameTime = performance.now();
@@ -384,19 +393,19 @@ export class GameEngine {
   activatePowerMode() {
     this.isPowerMode = true;
     this.ghostManager.setAllScared(true);
-    
+
     if (this.powerModeTimer) {
       clearTimeout(this.powerModeTimer);
     }
-    
+
     this.emit(GameEvents.POWER_MODE_START, {});
-    
+
     this.powerModeTimer = setTimeout(() => {
       this.isPowerMode = false;
       this.ghostManager.setAllScared(false);
       this.powerModeTimer = null;
       this.emit(GameEvents.POWER_MODE_END, {});
-    }, this.config.get('powerModeDuration'));
+    }, this.config.get("powerModeDuration"));
   }
 
   /**
@@ -411,8 +420,9 @@ export class GameEngine {
    * 绘制游戏画面
    */
   draw() {
-    if (!this.renderer || !this.map || !this.pacman || !this.ghostManager) return;
-    
+    if (!this.renderer || !this.map || !this.pacman || !this.ghostManager)
+      return;
+
     this.renderer.render({
       walls: this.map.getWalls(),
       dots: this.map.getDots(),
@@ -438,7 +448,7 @@ export class GameEngine {
     const duration = this.getDuration();
     const mins = Math.floor(duration / 60);
     const secs = duration % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   }
 
   /**
@@ -462,7 +472,8 @@ export class GameEngine {
    */
   applySpeedUp(value, duration) {
     this.speedMultiplier = 1 + value / 100;
-    
+    soundManager.playPowerUp();
+
     setTimeout(() => {
       this.speedMultiplier = 1;
     }, duration * 1000);
@@ -474,11 +485,12 @@ export class GameEngine {
   applyInvincible(duration) {
     this.isPowerMode = true;
     this.ghostManager.setAllScared(true);
-    
+    soundManager.playPowerUp();
+
     if (this.invincibleTimer) {
       clearTimeout(this.invincibleTimer);
     }
-    
+
     this.invincibleTimer = setTimeout(() => {
       if (!this.powerModeTimer) {
         this.isPowerMode = false;
@@ -493,7 +505,8 @@ export class GameEngine {
    */
   applyDoubleScore(duration) {
     this.scoreMultiplier = 2;
-    
+    soundManager.playPowerUp();
+
     setTimeout(() => {
       this.scoreMultiplier = 1;
     }, duration * 1000);
@@ -504,7 +517,8 @@ export class GameEngine {
    */
   applyMagnet(duration) {
     this.hasMagnet = true;
-    
+    soundManager.playPowerUp();
+
     setTimeout(() => {
       this.hasMagnet = false;
     }, duration * 1000);
@@ -514,9 +528,10 @@ export class GameEngine {
    * 添加额外生命
    */
   addLife() {
-    const maxLives = this.config.get('maxLives');
+    const maxLives = this.config.get("maxLives");
     if (this.lives < maxLives) {
       this.lives++;
+      soundManager.playPowerUp();
       this.emit(GameEvents.LIVES_CHANGE, { lives: this.lives });
     }
   }
@@ -539,7 +554,7 @@ export class GameEngine {
   off(event, callback) {
     if (!this.eventListeners[event]) return;
     this.eventListeners[event] = this.eventListeners[event].filter(
-      cb => cb !== callback
+      (cb) => cb !== callback,
     );
   }
 
@@ -548,7 +563,7 @@ export class GameEngine {
    */
   emit(event, data) {
     if (!this.eventListeners[event]) return;
-    this.eventListeners[event].forEach(callback => callback(data));
+    this.eventListeners[event].forEach((callback) => callback(data));
   }
 
   // ===== 状态获取 =====

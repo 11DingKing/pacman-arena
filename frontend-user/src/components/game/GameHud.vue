@@ -14,9 +14,18 @@
       <span class="hud-label">生命</span>
       <div class="lives">
         <span v-for="i in lives" :key="i" class="life active">❤️</span>
-        <span v-for="i in maxLives - lives" :key="'empty-' + i" class="life">💔</span>
+        <span v-for="i in maxLives - lives" :key="'empty-' + i" class="life"
+          >💔</span
+        >
       </div>
     </div>
+    <button
+      class="hud-item sound-button"
+      @click="$emit('toggleSound')"
+      :title="soundEnabled ? '关闭音效' : '开启音效'"
+    >
+      <span class="sound-icon">{{ soundEnabled ? "🔊" : "🔇" }}</span>
+    </button>
   </div>
 </template>
 
@@ -42,7 +51,13 @@ defineProps({
     type: Number,
     default: 1,
   },
+  soundEnabled: {
+    type: Boolean,
+    default: true,
+  },
 });
+
+defineEmits(["toggleSound"]);
 </script>
 
 <style lang="scss" scoped>
@@ -100,10 +115,34 @@ defineProps({
       }
     }
   }
+
+  .sound-button {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: transparent;
+    border: none;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    .sound-icon {
+      font-size: 20px;
+    }
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 </style>
