@@ -39,6 +39,19 @@ public class AuthController {
         return Result.success(userService.getUserInfo(userId));
     }
     
+    @GetMapping("/user/settings")
+    public Result<Map<String, Object>> getUserSettings(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return Result.success(userService.getUserSettings(userId));
+    }
+    
+    @PutMapping("/user/settings")
+    public Result<Void> updateUserSettings(HttpServletRequest request, @Valid @RequestBody SettingsRequest requestBody) {
+        Long userId = (Long) request.getAttribute("userId");
+        userService.updateUserSettings(userId, requestBody.getSoundEnabled());
+        return Result.success();
+    }
+    
     @Data
     public static class RegisterRequest {
         @NotBlank(message = "用户名不能为空")
@@ -54,5 +67,10 @@ public class AuthController {
         private String username;
         @NotBlank(message = "密码不能为空")
         private String password;
+    }
+    
+    @Data
+    public static class SettingsRequest {
+        private Boolean soundEnabled;
     }
 }
