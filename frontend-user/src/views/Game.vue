@@ -37,6 +37,12 @@
       class="top-effects"
     />
 
+    <!-- 音效开关按钮 -->
+    <button class="sound-toggle-btn" @click="toggleSound">
+      <span v-if="soundEnabled">🔊</span>
+      <span v-else>🔇</span>
+    </button>
+
     <!-- 游戏画布容器 -->
     <div class="game-wrapper">
       <div
@@ -85,7 +91,11 @@
 
     <!-- 游戏控制 -->
     <GameControls
-      v-if="gameState === 'playing' || gameState === 'ready' || gameState === 'paused'"
+      v-if="
+        gameState === 'playing' ||
+        gameState === 'ready' ||
+        gameState === 'paused'
+      "
       :is-playing="gameState === 'playing'"
       @direction="handleTouch"
       @toggle-pause="togglePause"
@@ -102,11 +112,11 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from "vue";
+import { ref, watch, onMounted, onUnmounted, computed } from "vue";
 import { gameApi, itemApi } from "../api";
 import { useUserStore } from "../stores/user";
 import { ElMessage } from "element-plus";
-import { GameEngine, GameEvents } from "../game";
+import { GameEngine, GameEvents, soundManager } from "../game";
 import {
   GameHud,
   GameControls,
@@ -118,6 +128,17 @@ import {
 
 // ===== 用户状态 =====
 const userStore = useUserStore();
+const soundEnabled = computed(() => userStore.soundEnabled);
+
+// ===== 音效控制 =====
+function toggleSound() {
+  const newState = !soundEnabled.value;
+  userStore.updateSettings({ soundEnabled: newState });
+  soundManager.setEnabled(newState);
+  if (newState) {
+    soundManager.init();
+  }
+}
 
 // ===== 游戏引擎 =====
 const gameCanvas = ref(null);
@@ -147,24 +168,51 @@ let effectTimers = {};
 // ===== 游戏引擎初始化 =====
 function initEngine() {
   if (!gameCanvas.value) return;
-  
+
   engine = new GameEngine(gameCanvas.value);
   canvasSize.value = engine.getCanvasSize();
-  
+
   // 监听游戏事件
-  engine.on(GameEvents.SCORE_CHANGE, (data) => { score.value = data.score; });
-  engine.on(GameEvents.LEVEL_CHANGE, (data) => { level.value = data.level; });
-  engine.on(GameEvents.LIVES_CHANGE, (data) => { lives.value = data.lives; });
-  engine.on(GameEvents.STATE_CHANGE, (data) => { gameState.value = data.state; });
-  engine.on(GameEvents.DEATH, (data) => { handleDeath(data.lives); });
-  engine.on(GameEvents.GAME_OVER, (data) => { handleGameOver(data); });
-  
+  engine.on(GameEvents.SCORE_CHANGE, (data) => {
+    score.value = data.score;
+  });
+  engine.on(GameEvents.LEVEL_CHANGE, (data) => {
+    level.value = data.level;
+  });
+  engine.on(GameEvents.LIVES_CHANGE, (data) => {
+    lives.value = data.lives;
+  });
+  engine.on(GameEvents.STATE_CHANGE, (data) => {
+    gameState.value = data.state;
+  });
+  engine.on(GameEvents.DEATH, (data) => {
+    handleDeath(data.lives);
+    soundManager.playDeath();
+  });
+  engine.on(GameEvents.GAME_OVER, (data) => {
+    handleGameOver(data);
+  });
+  engine.on(GameEvents.DOT_EATEN, () => {
+    soundManager.playEatDot();
+  });
+  engine.on(GameEvents.POWER_DOT_EATEN, () => {
+    soundManager.playEatPowerDot();
+  });
+  engine.on(GameEvents.GHOST_EATEN, () => {
+    soundManager.playGhostEaten();
+  });
+  engine.on(GameEvents.LEVEL_COMPLETE, () => {
+    soundManager.playLevelComplete();
+  });
+
   engine.init();
 }
 
 // ===== 游戏控制 =====
 function startGame() {
   if (!engine) initEngine();
+  soundManager.init();
+  soundManager.setEnabled(soundEnabled.value);
   engine.start();
   score.value = engine.getScore();
   level.value = engine.getLevel();
@@ -183,7 +231,7 @@ function collapseAllPanels() {
   // 收起背包
   itemsToolbarRef.value?.collapse();
   // 通知 Layout 收起导航（通过自定义事件）
-  window.dispatchEvent(new CustomEvent('collapse-nav'));
+  window.dispatchEvent(new CustomEvent("collapse-nav"));
 }
 
 function resumeGame() {
@@ -222,10 +270,23 @@ function handleItemsToggle(isExpanded) {
 
 function handleKeydown(e) {
   const keyMap = {
-    ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
-    w: "up", W: "up", s: "down", S: "down", a: "left", A: "left", d: "right", D: "right",
+    ArrowUp: "up",
+    ArrowDown: "down",
+    ArrowLeft: "left",
+    ArrowRight: "right",
+    w: "up",
+    W: "up",
+    s: "down",
+    S: "down",
+    a: "left",
+    A: "left",
+    d: "right",
+    D: "right",
   };
-  if (keyMap[e.key]) { e.preventDefault(); handleTouch(keyMap[e.key]); }
+  if (keyMap[e.key]) {
+    e.preventDefault();
+    handleTouch(keyMap[e.key]);
+  }
   if (e.key === "Escape" || e.key === "p" || e.key === "P") togglePause();
   if (e.key === " " && gameState.value === "ready") startGame();
 }
@@ -234,30 +295,42 @@ function handleKeydown(e) {
 function handleDeath(remainingLives) {
   if (remainingLives <= 0) return;
   showDeathHint.value = true;
-  
+
   continueTimeoutId = setTimeout(() => {
     continueTimeoutId = null;
     showDeathHint.value = false;
     isInvincibleAfterDeath.value = true;
-    setTimeout(() => { isInvincibleAfterDeath.value = false; }, 2000);
+    setTimeout(() => {
+      isInvincibleAfterDeath.value = false;
+    }, 2000);
     if (engine) engine.continueAfterDeath();
   }, 2000);
 }
 
 function clearContinueTimeout() {
-  if (continueTimeoutId) { clearTimeout(continueTimeoutId); continueTimeoutId = null; }
+  if (continueTimeoutId) {
+    clearTimeout(continueTimeoutId);
+    continueTimeoutId = null;
+  }
 }
 
 // ===== 游戏结束 =====
 function handleGameOver(data) {
   showDeathHint.value = false;
   formattedDuration.value = engine ? engine.formatDuration() : "0:00";
-  
+
   if (userStore.isLoggedIn) {
-    gameApi.submitScore({ score: data.score, level: data.level, duration: data.duration })
+    gameApi
+      .submitScore({
+        score: data.score,
+        level: data.level,
+        duration: data.duration,
+      })
       .then(() => {
         showScoreToast.value = true;
-        setTimeout(() => { showScoreToast.value = false; }, 3000);
+        setTimeout(() => {
+          showScoreToast.value = false;
+        }, 3000);
       })
       .catch((e) => console.error(e));
   }
@@ -269,7 +342,9 @@ async function loadMyItems() {
   try {
     const res = await itemApi.getMyItems();
     myItems.value = res.data || [];
-  } catch (e) { console.error(e); }
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 async function useItem(item) {
@@ -290,14 +365,24 @@ async function useItem(item) {
   try {
     await itemApi.useItem(item.itemId);
     const { effectType, duration = 10, effectValue = 50 } = item;
-    const nameMap = { SPEED_UP: "加速药水", INVINCIBLE: "无敌护盾", DOUBLE_SCORE: "双倍积分", EXTRA_LIFE: "额外生命", MAGNET: "磁铁道具" };
+    const nameMap = {
+      SPEED_UP: "加速药水",
+      INVINCIBLE: "无敌护盾",
+      DOUBLE_SCORE: "双倍积分",
+      EXTRA_LIFE: "额外生命",
+      MAGNET: "磁铁道具",
+    };
     const itemName = nameMap[effectType] || item.name || "道具";
+
+    soundManager.playUseItem();
 
     switch (effectType) {
       case "SPEED_UP":
         engine.applySpeedUp(effectValue, duration);
         addActiveEffect("SPEED_UP", duration, `速度+${effectValue}%`);
-        ElMessage.success(`🚀 ${itemName} - 速度提升${effectValue}%，持续${duration}秒`);
+        ElMessage.success(
+          `🚀 ${itemName} - 速度提升${effectValue}%，持续${duration}秒`,
+        );
         break;
       case "INVINCIBLE":
         engine.applyInvincible(duration);
@@ -309,7 +394,9 @@ async function useItem(item) {
         scoreMultiplier.value = 2;
         addActiveEffect("DOUBLE_SCORE", duration, "双倍积分");
         if (effectTimers.DOUBLE_SCORE) clearTimeout(effectTimers.DOUBLE_SCORE);
-        effectTimers.DOUBLE_SCORE = setTimeout(() => { scoreMultiplier.value = 1; }, duration * 1000);
+        effectTimers.DOUBLE_SCORE = setTimeout(() => {
+          scoreMultiplier.value = 1;
+        }, duration * 1000);
         ElMessage.success(`⭐ ${itemName} - 双倍积分，持续${duration}秒`);
         break;
       case "EXTRA_LIFE":
@@ -338,7 +425,11 @@ function addActiveEffect(type, duration, name) {
   if (existing) {
     existing.endTime = Date.now() + duration * 1000;
   } else {
-    activeEffects.value.push({ type, name, endTime: Date.now() + duration * 1000 });
+    activeEffects.value.push({
+      type,
+      name,
+      endTime: Date.now() + duration * 1000,
+    });
   }
   if (effectTimers[type]) clearTimeout(effectTimers[type]);
   effectTimers[type] = setTimeout(() => {
@@ -349,26 +440,34 @@ function addActiveEffect(type, duration, name) {
 function clearAllEffects() {
   activeEffects.value = [];
   scoreMultiplier.value = 1;
-  Object.values(effectTimers).forEach(timer => clearTimeout(timer));
+  Object.values(effectTimers).forEach((timer) => clearTimeout(timer));
   effectTimers = {};
 }
 
 // ===== 生命周期 =====
-watch(gameState, (s) => {
-  document.body.style.overflow = s === "over" ? "hidden" : "";
-}, { immediate: true });
+watch(
+  gameState,
+  (s) => {
+    document.body.style.overflow = s === "over" ? "hidden" : "";
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   initEngine();
   loadMyItems();
   window.addEventListener("keydown", handleKeydown);
+  soundManager.setEnabled(soundEnabled.value);
 });
 
 onUnmounted(() => {
   document.body.style.overflow = "";
   clearContinueTimeout();
   clearAllEffects();
-  if (engine) { engine.destroy(); engine = null; }
+  if (engine) {
+    engine.destroy();
+    engine = null;
+  }
   window.removeEventListener("keydown", handleKeydown);
 });
 </script>
@@ -417,8 +516,15 @@ onUnmounted(() => {
   }
 }
 
-.toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
-.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+}
 
 // 顶部 HUD - 独立显示
 .top-hud {
@@ -461,6 +567,38 @@ onUnmounted(() => {
   margin-bottom: 6px;
 }
 
+// 音效开关按钮
+.sound-toggle-btn {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(30, 41, 59, 0.9);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  color: #ffd700;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+
+  &:hover {
+    transform: scale(1.1);
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
 .game-wrapper {
   display: flex;
   flex-direction: column;
@@ -475,11 +613,15 @@ onUnmounted(() => {
   border: 2px solid rgba(37, 99, 235, 0.5);
   border-radius: 10px;
   padding: 4px;
-  box-shadow: 0 0 30px rgba(37, 99, 235, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 30px rgba(37, 99, 235, 0.3),
+    inset 0 0 30px rgba(0, 0, 0, 0.5);
 
   &.game-active {
     border-color: rgba(255, 215, 0, 0.5);
-    box-shadow: 0 0 40px rgba(255, 215, 0, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.5);
+    box-shadow:
+      0 0 40px rgba(255, 215, 0, 0.3),
+      inset 0 0 30px rgba(0, 0, 0, 0.5);
   }
 
   canvas {
@@ -526,14 +668,16 @@ onUnmounted(() => {
     }
   }
 
-  .ready-icon, .pause-icon {
+  .ready-icon,
+  .pause-icon {
     font-size: 48px;
     animation: bounce 1s ease-in-out infinite;
   }
 }
 
 // 按钮样式
-.btn-start, .btn-primary {
+.btn-start,
+.btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -548,8 +692,13 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4); }
-  &:active { transform: translateY(0); }
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+  }
+  &:active {
+    transform: translateY(0);
+  }
 }
 
 .btn-secondary {
@@ -567,7 +716,11 @@ onUnmounted(() => {
   transition: all 0.2s ease;
   width: 100%;
 
-  &:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.5); color: #ffd700; }
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #ffd700;
+  }
 }
 
 .pause-actions {
@@ -579,8 +732,13 @@ onUnmounted(() => {
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 // 小屏手机
@@ -590,9 +748,15 @@ onUnmounted(() => {
 
     :deep(.game-hud) {
       padding: 4px 8px;
-      .hud-label { font-size: 8px; }
-      .hud-value { font-size: 16px; }
-      .lives .life { font-size: 12px; }
+      .hud-label {
+        font-size: 8px;
+      }
+      .hud-value {
+        font-size: 16px;
+      }
+      .lives .life {
+        font-size: 12px;
+      }
     }
   }
 
@@ -608,8 +772,12 @@ onUnmounted(() => {
 @media (max-height: 600px) {
   .top-hud :deep(.game-hud) {
     padding: 3px 6px;
-    .hud-value { font-size: 14px; }
-    .lives .life { font-size: 10px; }
+    .hud-value {
+      font-size: 14px;
+    }
+    .lives .life {
+      font-size: 10px;
+    }
   }
 
   .game-container canvas {
@@ -642,8 +810,12 @@ onUnmounted(() => {
 
     :deep(.game-hud) {
       padding: 10px 16px;
-      .hud-value { font-size: 22px; }
-      .lives .life { font-size: 16px; }
+      .hud-value {
+        font-size: 22px;
+      }
+      .lives .life {
+        font-size: 16px;
+      }
     }
   }
 
@@ -670,7 +842,9 @@ onUnmounted(() => {
     :deep(.game-hud) {
       padding: 12px 20px;
       gap: 16px;
-      .hud-value { font-size: 26px; }
+      .hud-value {
+        font-size: 26px;
+      }
     }
   }
 

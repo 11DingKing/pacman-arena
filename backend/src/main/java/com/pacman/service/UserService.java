@@ -120,6 +120,25 @@ public class UserService {
         info.put("nickname", user.getNickname());
         info.put("avatar", user.getAvatar());
         info.put("role", user.getRole());
+        info.put("settings", user.getSettings());
         return info;
+    }
+    
+    public String getSettings(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        return user.getSettings();
+    }
+    
+    public void updateSettings(Long userId, String settings) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        user.setSettings(settings);
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
     }
 }

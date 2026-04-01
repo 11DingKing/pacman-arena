@@ -1,6 +1,7 @@
 package com.pacman.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -15,6 +16,7 @@ public class User {
     private String avatar;
     private Integer role; // 0-普通用户, 1-管理员
     private Integer status; // 0-禁用, 1-正常
+    private String settings; // 用户设置(JSON格式)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
