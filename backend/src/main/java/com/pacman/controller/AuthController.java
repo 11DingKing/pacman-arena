@@ -38,6 +38,24 @@ public class AuthController {
         Long userId = (Long) request.getAttribute("userId");
         return Result.success(userService.getUserInfo(userId));
     }
+
+    @GetMapping("/settings")
+    public Result<Map<String, Object>> getUserSettings(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return Result.success(userService.getUserSettings(userId));
+    }
+
+    @PutMapping("/settings")
+    public Result<Void> updateUserSettings(@Valid @RequestBody UpdateSettingsRequest request, HttpServletRequest httpRequest) {
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        userService.updateUserSettings(userId, request.getSoundEnabled());
+        return Result.success();
+    }
+    
+    @Data
+    public static class UpdateSettingsRequest {
+        private Boolean soundEnabled;
+    }
     
     @Data
     public static class RegisterRequest {

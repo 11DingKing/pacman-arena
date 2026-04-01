@@ -15,6 +15,7 @@ public class User {
     private String avatar;
     private Integer role; // 0-普通用户, 1-管理员
     private Integer status; // 0-禁用, 1-正常
+    private Boolean soundEnabled; // 是否开启音效
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

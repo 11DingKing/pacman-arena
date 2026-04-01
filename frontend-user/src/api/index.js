@@ -65,6 +65,8 @@ export const authApi = {
   login: (data) => api.post("/auth/login", data),
   register: (data) => api.post("/auth/register", data),
   getInfo: () => api.get("/auth/info"),
+  getSettings: () => api.get("/auth/settings"),
+  updateSettings: (data) => api.put("/auth/settings", data),
 };
 
 // Game API

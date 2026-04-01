@@ -113,6 +113,26 @@ public class UserService {
         userMapper.updateById(user);
     }
     
+    public Map<String, Object> getUserSettings(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        Map<String, Object> settings = new HashMap<>();
+        settings.put("soundEnabled", user.getSoundEnabled() != null ? user.getSoundEnabled() : true);
+        return settings;
+    }
+
+    public void updateUserSettings(Long userId, Boolean soundEnabled) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        user.setSoundEnabled(soundEnabled);
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
+    }
+
     private Map<String, Object> buildUserInfo(User user) {
         Map<String, Object> info = new HashMap<>();
         info.put("id", user.getId());
@@ -120,6 +140,7 @@ public class UserService {
         info.put("nickname", user.getNickname());
         info.put("avatar", user.getAvatar());
         info.put("role", user.getRole());
+        info.put("soundEnabled", user.getSoundEnabled() != null ? user.getSoundEnabled() : true);
         return info;
     }
 }
